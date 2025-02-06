@@ -22,8 +22,9 @@ void GPSLocalization::odomCallback(const nav_msgs::Odometry &msg){
 	newPoseStamped.header.frame_id = "map";
 	//newPoseStamped.pose = msg.pose.pose;
 	//newPoseStamped.pose = lastPoseStamped.pose;
-	newPoseStamped.pose.orientation = lastPoseStamped.pose.orientation;
 	newPoseStamped.pose.position = msg.pose.pose.position;
+	newPoseStamped.pose.position.z = lastPoseStamped.pose.position.z;
+	newPoseStamped.pose.orientation = msg.pose.pose.orientation;
 	pose_pub.publish(newPoseStamped);
 	geometry_msgs::TwistStamped newSpeedStamped;
 	newSpeedStamped.header = msg.header;
