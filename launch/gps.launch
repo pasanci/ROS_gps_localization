@@ -1,42 +1,50 @@
 <!-- -->
 <launch>
-	<arg name="robot_namespace"     default="drone0" />
+	<arg name="robot_namespace"     default="drone1" />
+	<arg name="odometry_topic" default="odometry/filtered"/>
+	<arg name="localization_topic" default="self_localization/pose"/>
+	<arg name="speed_topic" default="self_localization/speed"/>
+	<param name="robot_namespace" value="$(arg robot_namespace)"/>
 	<node pkg="tf2_ros" type="static_transform_publisher" name="gps_tf" args="0 0 0 0 0 0 map base_link" respawn="true"/>
 	<node pkg="tf2_ros" type="static_transform_publisher" name="gps_tf2" args="0 0 0 0 0 0 odom map" respawn="true"/>
 	<!--<node pkg="tf2_ros" type="static_transform_publisher" name="gps_tf3" args="1 1 1 1 1 1 map gps" respawn="true"/>-->
-	<node pkg="robot_localization" type="navsat_transform_node" name="navsat_transform_node" respawn="true">
-		<param name="frequency" value="10"/>
-		<param name="magnetic_declination_radians" value="0"/>
-		<param name="yaw_offset" value="0"/>
-		<param name="wait_for_datum" value="false"/>
-		<param name="broadcast_utm_transform" value="true"/>
-		<param name="broadcast_utm_transform_as_parent_frame" value="true"/>
-		<param name="publish_filtered_gps" value="true"/>
-		<param name="use_odometry_yaw" value="false"/>
-		<remap from="/imu/data" to="$(arg robot_namespace)/mavros/imu/data" />
-		<remap from="/gps/fix" to="$(arg robot_namespace)/mavros/global_position/raw/fix" />
-		<!--<remap from="/gps/fix" to="/fix" />-->
-		<!--<remap from="/odometry/filtered" to="/odometry/filtered" />-->
-	</node>
-	<!--<node pkg="robot_localization" type="ekf_localization_node" name="ekf_localization_node" respawn="true">
-		<param name="frequency" value="20"/>
-		<param name="world_frame" value="odom"/>
-		<param name="odom0" value="/odometry/filtered"/>
-		<param name="imu0" value="$(arg robot_namespace)/mavros/imu/data"/>
-	</node>-->
 
-	<node pkg="robot_localization" type="ekf_localization_node" name="ekf_localization_node" respawn="true">
-		<param name="publish_tf" value="true"/>
-		<param name="sensor_timeout" value="0.2"/>  
-		<param name="two_d_mode" value="false"/>
-		<param name="map_frame" value="map"/>
-		<param name="odom_frame" value="odom"/>
-		<param name="base_link_frame" value="base_link"/>
-		<param name="world_frame" value="odom"/>
-		<param name="odom0" value="/odometry/gps"/>
-		<rosparam param="odom0_config">[true,  true,  true, false, false, false, false, false, false, false, false, false, false, false, false]</rosparam>
-		<param name="odom0_differential" value="false"/>
-		<param name="imu0" value="$(arg robot_namespace)/mavros/imu/data"/>
-		<rosparam param="imu0_config">[false,  false,  false, true, true, true, false, false, false, true, true, true, false, false, false]</rosparam>
+	<group ns="$(arg robot_namespace)">
+		<param name="robot_namespace" value="$(arg robot_namespace)"/>
+		<node pkg="robot_localization" type="navsat_transform_node" name="navsat_transform_node" respawn="true">
+			<rosparam param="publish_tf">"true"</rosparam>
+			<rosparam param="frequency">"10"</rosparam>
+			<rosparam param="magnetic_declination_radians">"0"</rosparam>
+			<rosparam param="yaw_offset">"0"</rosparam>
+			<rosparam param="wait_for_datum">"false"</rosparam>
+			<rosparam param="broadcast_utm_transform">"true"</rosparam>
+			<rosparam param="broadcast_utm_transform_as_parent_frame">"true"</rosparam>
+			<rosparam param="publish_filtered_gps">"true"</rosparam>
+			<rosparam param="use_odometry_yaw">"false"</rosparam>
+			<remap from="imu/data" to="mavros/imu/data" />
+			<remap from="gps/fix" to="mavros/global_position/raw/fix" />
+		</node>
+
+		<node pkg="robot_localization" type="ekf_localization_node" name="ekf_localization_node" respawn="true">
+			<rosparam param="publish_tf">"true"</rosparam>
+			<rosparam param="sensor_timeout">"0.2"</rosparam>
+			<rosparam param="two_d_mode">"false"</rosparam>
+			<rosparam param="map_frame">"map"</rosparam>
+			<rosparam param="odom_frame">"odom"</rosparam>
+			<rosparam param="base_link_frame">"base_link"</rosparam>
+			<rosparam param="world_frame">"odom"</rosparam>
+			<rosparam param="odom0">"odometry/gps"</rosparam>
+			<rosparam param="odom0_config">[true,  true,  true, false, false, false, false, false, false, false, false, false, false, false, false]</rosparam>
+			<rosparam param="odom0_differential">"false"</rosparam>
+			<param name="imu0" value="mavros/imu/data"/>
+			<rosparam param="imu0_config">[false,  false,  false, true, true, true, false, false, false, true, true, true, false, false, false]</rosparam>
+		</node>
+
+		<param name="odometry_topic" type="str" value="$(arg odometry_topic)"/>
+		<param name="localization_topic" type="str" value="$(arg localization_topic)"/>
+		<param name="speed_topic" type="str" value="$(arg speed_topic)"/>
+		<node pkg="gps_localization" type="gps_localization_node" name="gps_localization_node" respawn="true">
 	</node>
+	</group>
+	<node pkg="topic_tools" type="relay" name="speed_relay" args="$(arg robot_namespace)/mavros/local_position/velocity_local $(arg robot_namespace)/self_localization/speed" respawn="true"></node>
 </launch>

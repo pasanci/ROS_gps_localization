@@ -7,22 +7,37 @@ GPSLocalization::~GPSLocalization(){
 
 void GPSLocalization::init(){
     ros::NodeHandle private_nh;
-	//private_nh.getParam("robot_namespace", robot_namespace);
-	//private_nh.getParam("odometry_topic", odometry_topic);
-	//private_nh.getParam("localization_topic", localization_topic);
-	private_nh.param<std::string>("robot_namespace", robot_namespace, "/drone1");
-	private_nh.param<std::string>("odometry_topic", odometry_topic, "/odometry/filtered");
-	private_nh.param<std::string>("localization_topic", localization_topic, "/odometry/filtered");
-	ros::Subscriber sub = node_handle.subscribe(robot_namespace+odometry_topic, 100, &GPSLocalization::chatterCallback, this);
-	ros::Publisher pub = node_handle.advertise<geometry_msgs::PoseStamped>(robot_namespace+localization_topic, 1000);
+	private_nh.getParam("odometry_topic", odometry_topic);
+	private_nh.getParam("localization_topic", localization_topic);
+	private_nh.getParam("speed_topic", speed_topic);
+	odom_sub = node_handle.subscribe(odometry_topic, 100, &GPSLocalization::odomCallback, this);
+	pose_sub = node_handle.subscribe("self_localization/pose2", 100, &GPSLocalization::poseCallback, this);
+	pose_pub = node_handle.advertise<geometry_msgs::PoseStamped>(localization_topic, 1000);
+	//speed_pub = node_handle.advertise<geometry_msgs::TwistStamped>(speed_topic, 1000);
 }
 
-void GPSLocalization::chatterCallback(const nav_msgs::Odometry &msg){
-	//ROS_INFO("I heard: [%s]", msg.child_frame_id);
+void GPSLocalization::odomCallback(const nav_msgs::Odometry &msg){
+	geometry_msgs::PoseStamped newPoseStamped;
+	newPoseStamped.header = msg.header;
+	newPoseStamped.header.frame_id = "map";
+	//newPoseStamped.pose = msg.pose.pose;
+	//newPoseStamped.pose = lastPoseStamped.pose;
+	newPoseStamped.pose.orientation = lastPoseStamped.pose.orientation;
+	newPoseStamped.pose.position = msg.pose.pose.position;
+	pose_pub.publish(newPoseStamped);
+	geometry_msgs::TwistStamped newSpeedStamped;
+	newSpeedStamped.header = msg.header;
+	newSpeedStamped.twist = msg.twist.twist;
+	//speed_pub.publish(newSpeedStamped);
+}
+
+void GPSLocalization::poseCallback(const geometry_msgs::PoseStamped &msg){
+	lastPoseStamped.header = msg.header;
+	//lastPoseStamped.header.frame_id = "map";
+	lastPoseStamped.pose = msg.pose;
 }
 
 int main(int argc, char **argv){
-	std::cout << "init gps_node" << std::endl;
 	ros::init(argc, argv, "gps_node");
 	GPSLocalization gpsL;
 	gpsL.init();
